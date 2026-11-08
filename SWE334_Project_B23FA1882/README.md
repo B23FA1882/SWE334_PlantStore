@@ -60,6 +60,23 @@ Requires a Stripe test account and test API secrets; not enabled by merely pushi
 
 If the Edge Functions are not deployed, order creation still works and payment remains pending. Do not manually mark an unverified payment as paid.
 
+
+## Cancel an unpaid order
+
+Click **Захиалга цуцлах** next to an unpaid order in `/orders`, then confirm.
+The order disappears from the customer's active list; it is **not physically deleted**
+and remains visible to the admin as `cancelled`. The database restores the
+reserved stock exactly once. Paid/completed Checkout sessions cannot be cancelled.
+
+The secured flow is **authenticated customer → cancel-order Edge Function →
+expire Stripe Checkout session (if any) → service-role-only cancellation RPC**.
+This avoids client-side cancellation of another user's order or resetting a
+paid order. The RPC source is stored at
+`supabase/sql/cancel-order-service.sql`; deploy it to a fresh project via SQL
+Editor, and deploy `supabase/functions/cancel-order/index.ts` with JWT
+verification enabled. Existing projects require this SQL update in addition to
+the original schema. The secret key stays in Supabase Edge Function Secrets.
+
 ## 4. Vercel deployment
 
 1. Import `B23FA1882/SWE334_PlantStore` into Vercel.
