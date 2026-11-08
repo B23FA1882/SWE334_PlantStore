@@ -1,0 +1,7 @@
+# Checkout requires an authenticated customer JWT.
+[functions.create-checkout]
+verify_jwt = true
+
+# Stripe posts a signed webhook, not a Supabase JWT.
+[functions.stripe-webhook]
+verify_jwt = false
