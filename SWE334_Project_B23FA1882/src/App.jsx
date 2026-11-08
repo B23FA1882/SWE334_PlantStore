@@ -223,13 +223,29 @@ function Orders() {
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [paying,setPaying]=useState(null)
+  const [canceling,setCanceling]=useState(null)
   useEffect(()=>{
     if(!supabase||!user)return
     let alive=true
-    supabase.from('orders').select('*, order_items(quantity,unit_price,products(name))').eq('user_id',user.id).order('created_at',{ascending:false})
+    supabase.from('orders').select('*, order_items(quantity,unit_price,products(name))').eq('user_id',user.id).neq('status','cancelled').order('created_at',{ascending:false})
       .then(({data,error})=>{if(alive){setOrders(data||[]);setError(error?.message||'');setLoading(false)}})
     return ()=>{alive=false}
   },[user])
+  const cancelOrder=async order=>{
+    if(!window.confirm('Энэ захиалгыг цуцлах уу? Төлбөр төлөгдөөгүй захиалга цуцлагдаж, ургамлын үлдэгдэл буцаан нэмэгдэнэ.'))return
+    setCanceling(order.id);setError('')
+    try{
+      const {data,error}=await supabase.functions.invoke('cancel-order',{body:{orderId:order.id}})
+      if(error){
+        let message=error.message
+        try{const details=await error.context?.json();message=details?.error||message}catch{/* response may be unavailable */}
+        throw new Error(message)
+      }
+      if(data?.status!=='cancelled')throw new Error('Захиалга цуцлагдсан эсэхийг баталгаажуулж чадсангүй.')
+      setOrders(current=>current.filter(item=>item.id!==order.id))
+    }catch(err){setError('Захиалга цуцлахад алдаа гарлаа: '+err.message)}
+    finally{setCanceling(null)}
+  }
   const signOut=async()=>{await supabase.auth.signOut()}
   const pay=async order=>{
     setPaying(order.id);setError('')
@@ -239,7 +255,7 @@ function Orders() {
   }
   return <main className="page-shell"><div className="section-heading"><p className="eyebrow">YOUR ACCOUNT</p><h1 className="serif">Миний захиалгууд</h1><p>Сайн байна уу, {profile?.full_name || user.email}</p><button className="secondary-btn mt-5" onClick={signOut}><LogIn size={17}/> Гарах</button></div>
     {error&&<p className="error-text mb-6" role="alert">{error}</p>}
-    {loading?<div className="empty-state">Захиалга ачаалж байна...</div>:!orders.length?<div className="empty-state min-h-[260px] flex flex-col gap-5"><div className="flex justify-end"><Link to="/shop" className="primary-btn">Ургамал сонгох <ArrowRight size={17}/></Link></div><div className="flex flex-1 flex-col items-center justify-center gap-4"><ShoppingBag size={36} aria-hidden="true"/><p>Захиалгын түүх хоосон байна.</p></div></div>:<div className="space-y-5">{orders.map(o=><article className="order-card" key={o.id}><div className="flex flex-wrap gap-4 justify-between items-start"><div><p className="text-xs text-[#92a093]">#{o.id.slice(0,8)} · {new Date(o.created_at).toLocaleDateString('mn-MN')}</p><h3 className="text-xl font-semibold mt-2">{money(o.total_amount)}</h3></div><span className={o.status==='paid'?'status-paid':'status-pending'}>{o.status==='paid'?'Төлөгдсөн':o.status==='cancelled'?'Цуцлагдсан':'Хүлээгдэж буй'}</span></div><div className="mt-4 text-sm text-[#748274] space-y-1">{o.order_items?.map((i,j)=><p key={j}>{i.products?.name || 'Ургамал'} × {i.quantity} · {money(i.unit_price)}</p>)}</div>{o.status==='pending'&&<button disabled={paying===o.id} className="primary-btn mt-5" onClick={()=>pay(o)}>{paying===o.id?'Шилжүүлж байна...':'Төлбөр төлөх (Stripe test)'}<ArrowRight size={17}/></button>}</article>)}</div>}
+    {loading?<div className="empty-state">Захиалга ачаалж байна...</div>:!orders.length?<div className="empty-state min-h-[260px] flex flex-col gap-5"><div className="flex justify-end"><Link to="/shop" className="primary-btn">Ургамал сонгох <ArrowRight size={17}/></Link></div><div className="flex flex-1 flex-col items-center justify-center gap-4"><ShoppingBag size={36} aria-hidden="true"/><p>Захиалгын түүх хоосон байна.</p></div></div>:<div className="space-y-5">{orders.map(o=><article className="order-card" key={o.id}><div className="flex flex-wrap gap-4 justify-between items-start"><div><p className="text-xs text-[#92a093]">#{o.id.slice(0,8)} · {new Date(o.created_at).toLocaleDateString('mn-MN')}</p><h3 className="text-xl font-semibold mt-2">{money(o.total_amount)}</h3></div><span className={o.status==='paid'?'status-paid':'status-pending'}>{o.status==='paid'?'Төлөгдсөн':o.status==='cancelled'?'Цуцлагдсан':'Хүлээгдэж буй'}</span></div><div className="mt-4 text-sm text-[#748274] space-y-1">{o.order_items?.map((i,j)=><p key={j}>{i.products?.name || 'Ургамал'} × {i.quantity} · {money(i.unit_price)}</p>)}</div>{o.status==='pending'&&<div className="flex flex-wrap gap-3 mt-5"><button disabled={paying===o.id||canceling===o.id} className="primary-btn" onClick={()=>pay(o)}>{paying===o.id?'Шилжүүлж байна...':'Төлбөр төлөх (Stripe test)'}<ArrowRight size={17}/></button><button disabled={paying===o.id||canceling===o.id} className="secondary-btn" onClick={()=>cancelOrder(o)}><Trash2 size={17}/>{canceling===o.id?'Цуцалж байна...':'Захиалга цуцлах'}</button></div>}</article>)}</div>}
   </main>
 }
 
