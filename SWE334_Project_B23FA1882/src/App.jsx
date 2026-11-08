@@ -37,9 +37,9 @@ function Header() {
 function Footer() {
   return <footer className="border-t border-[#e1e4d8] bg-[#eff1e8] mt-20">
     <div className="max-w-[1260px] mx-auto px-6 py-12 grid gap-8 md:grid-cols-3">
-      <div><div className="font-bold tracking-[.2em] text-[#2a4936]">GREENROOM.</div><p className="mt-3 text-sm text-[#7c897c] max-w-xs">Таны ажлын орчинд амьд мэдрэмж, ногоон тайвшрал.</p></div>
+      <div><div className="font-bold tracking-[.2em] text-[#2a4936]">GREENROOM.</div><p className="mt-3 text-sm text-[#7c897c] max-w-xs">Таны ажил дахь амьд орчин.</p></div>
       <div><h4 className="font-medium mb-3">Дэлгүүр</h4><Link className="text-sm text-[#687869] hover:underline" to="/shop">Бүх ургамал</Link><p className="text-sm text-[#687869] mt-2">Арчилгааны зөвлөгөө бүтээгдэхүүн бүрд</p></div>
-      <div><h4 className="font-medium mb-3">Холбоо барих</h4><p className="text-sm text-[#687869]">Улаанбаатар, Монгол</p><p className="text-sm text-[#687869] mt-2">SWE334 · Сургалтын full-stack төсөл</p></div>
+      <div><h4 className="font-medium mb-3">Холбоо барих</h4><p className="text-sm text-[#687869]">Улаанбаатар, Монгол</p><p className="text-sm text-[#687869] mt-2">88325880</p></div>
     </div>
     <p className="pb-6 text-center text-xs text-[#9aa399]">© 2026 GREENROOM. All plants deserve a good home.</p>
   </footer>
@@ -79,7 +79,7 @@ function Home() {
     </section>
     <section id="about" className="mx-auto max-w-[1180px] mt-20 px-6"><div className="about-panel">
       <div className="relative"><p className="eyebrow text-[#b7c9b2]">A LITTLE MORE GREEN</p><h2 className="serif text-4xl md:text-6xl leading-tight mt-5">Good spaces <em>grow</em> good ideas.</h2><p className="text-[#ceddd0] max-w-md mt-5 leading-relaxed">Оффисын орон зайгаа өөрчлөхөд их зүйл хэрэггүй. Зөв сонгосон ганц ургамлаас бүх зүйл эхэлнэ.</p><Link to="/shop" className="inline-flex items-center gap-2 bg-[#f4f4e9] text-[#31553c] rounded-full px-6 py-3 mt-7 text-sm font-semibold">Ургамлаа сонгох <ArrowRight size={17}/></Link></div>
-      <div className="flex justify-center items-end"><PlantArt plant={demoPlants[0]} className="w-[240px] h-[270px] sm:w-[310px] sm:h-[340px] drop-shadow-2xl"/></div>
+      <div className="flex justify-center items-end"><PlantArt plant={demoPlants[0]} className="w-60 h-[270px] sm:w-[310px] sm:h-[340px] drop-shadow-2xl"/></div>
     </div></section>
   </>
 }
