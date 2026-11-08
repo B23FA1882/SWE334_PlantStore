@@ -3,5 +3,8 @@
 verify_jwt = true
 
 # Stripe posts a signed webhook, not a Supabase JWT.
+[functions.cancel-order]
+verify_jwt = true
+
 [functions.stripe-webhook]
 verify_jwt = false
