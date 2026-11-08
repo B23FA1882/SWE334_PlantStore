@@ -189,7 +189,13 @@ function Cart() {
     finally{setBusy(false)}
   }
   return <main className="page-shell"><div className="section-heading"><p className="eyebrow">YOUR GREEN BAG</p><h1 className="serif">Таны сагс</h1><p>{cart.length} төрлийн ургамал</p></div>
-    {!cart.length?<div className="empty-state min-h-[260px] flex flex-col gap-5"><div className="flex justify-end"><Link className="primary-btn" to="/shop">Ургамал сонгох <ArrowRight size={17}/></Link></div><div className="flex flex-1 flex-col items-center justify-center gap-4"><ShoppingBag size={36} aria-hidden="true"/><p>Таны сагс одоогоор хоосон байна.</p></div></div>:<div className="grid lg:grid-cols-[1.3fr_.7fr] gap-8 items-start">
+    {!cart.length?<div
+  className="empty-state relative min-h-[260px]"
+  style={{ padding: '20px' }}
+>
+      <Link to="/shop" className="primary-btn absolute top-4 right-4">Ургамал сонгох <ArrowRight size={17}/></Link>
+      <div className="flex min-h-[220px] flex-col items-center justify-center gap-4"><ShoppingBag size={36} aria-hidden="true"/><p>Таны сагс одоогоор хоосон байна.</p></div>
+    </div>:<div className="grid lg:grid-cols-[1.3fr_.7fr] gap-8 items-start">
       <div className="space-y-3">{cart.map(item=><div key={item.id} className="cart-item"><div className="cart-art"><PlantArt plant={item} className="h-full w-full"/></div><div className="flex-1 min-w-0"><p className="font-medium">{item.name}</p><p className="text-sm text-[#8b958b] mt-1">{money(item.price)}</p><div className="flex items-center gap-3 mt-4"><button onClick={()=>changeQty(item.id,item.quantity-1)} aria-label="Тоо хасах"><Minus size={16}/></button><span className="font-semibold text-sm">{item.quantity}</span><button onClick={()=>changeQty(item.id,item.quantity+1)} aria-label="Тоо нэмэх"><Plus size={16}/></button></div></div><div className="flex flex-col items-end justify-between h-full gap-6"><button aria-label="Устгах" onClick={()=>{if(window.confirm('Сагснаас хасах уу?'))removeFromCart(item.id)}}><Trash2 size={17} className="text-[#a5a4a0] hover:text-red-500"/></button><strong className="text-sm">{money(item.price*item.quantity)}</strong></div></div>)}</div>
       <form className="checkout-panel" onSubmit={checkout}><h2 className="serif text-3xl mb-6">Захиалгын мэдээлэл</h2><label className="form-field">Утасны дугаар<input required maxLength="20" placeholder="99xxxxxx" value={phone} onChange={e=>setPhone(e.target.value)}/></label><label className="form-field mt-4">Хүргэлтийн хаяг<textarea required maxLength="400" placeholder="Дүүрэг, хороо, байр..." rows="3" value={address} onChange={e=>setAddress(e.target.value)}/></label>
         <div className="border-t border-[#e0e4db] flex items-center justify-between mt-6 pt-5"><span>Нийт</span><strong className="text-2xl">{money(total)}</strong></div>
