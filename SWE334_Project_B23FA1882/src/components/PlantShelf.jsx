@@ -66,7 +66,8 @@ export default function PlantShelf({ plants }) {
       <div className="shelf-scroll">
         <div className="shelf-grid">
           {row.map(plant=><div key={plant.id} className="text-center min-w-0">
-            {openId===plant.id ? <div className="plant-slot" /> : <motion.button
+            {openId===plant.id ? <div className="plant-slot" /> : 
+            <motion.button
               layoutId={`plant-${plant.id}`} transition={spring}
               onClick={()=>setOpenId(plant.id)} className="plant-slot"
               aria-label={`${plant.name} ${money(plant.price)} — дэлгэрэнгүй`}>
