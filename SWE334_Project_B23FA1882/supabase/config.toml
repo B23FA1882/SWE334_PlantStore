@@ -1,8 +1,20 @@
-# Checkout requires an authenticated customer JWT.
+# GREENROOM: QPay Merchant V2 (sandbox by default).
+# Browser must send a signed-in user JWT to these two functions.
+[functions.qpay-invoice]
+verify_jwt = true
+
+[functions.qpay-status]
+verify_jwt = true
+
+# QPay sends callback notifications without a Supabase JWT.
+# This endpoint verifies status against the QPay API before changing any order.
+[functions.qpay-callback]
+verify_jwt = false
+
+# Keep historical Stripe functions for existing checkouts until migration ends.
 [functions.create-checkout]
 verify_jwt = true
 
-# Stripe posts a signed webhook, not a Supabase JWT.
 [functions.cancel-order]
 verify_jwt = true
 
