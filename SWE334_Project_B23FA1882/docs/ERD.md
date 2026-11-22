@@ -1,4 +1,4 @@
-# GREENROOM ERD (8 tables)
+# GREENROOM ERD (8 core tables + QPay invoice cache = 9)
 
 The system includes 1:N, N:M, and auth relationships. Paste the Mermaid graph into Mermaid Live Editor if you need an exported SVG/PDF for the Defense-1 slides.
 
@@ -12,6 +12,7 @@ erDiagram
   PRODUCTS ||--o{ PRODUCT_TAGS : classified_by
   TAGS ||--o{ PRODUCT_TAGS : labels
   ORDERS ||--o{ PAYMENTS : receives
+  ORDERS ||--o| QPAY_INVOICES : has
   PROFILES {
     uuid id PK,FK
     text full_name
@@ -52,6 +53,14 @@ erDiagram
     int quantity
     numeric unit_price
   }
+  QPAY_INVOICES {
+    uuid order_id PK,FK
+    text invoice_id UK
+    text qr_image
+    text qr_text
+    jsonb urls
+    text status
+  }
   PAYMENTS {
     uuid id PK
     uuid order_id FK
@@ -61,4 +70,4 @@ erDiagram
   }
 ```
 
-**Authorization**: visitor = anonymous read for active products/categories/tags; user = Auth + own profile/orders/payment read, backend RPC creates orders; admin = database-controlled role and RLS policies for CRUD. Never check `user_metadata` for admin roles. The checkout webhook is the sole normal source of a paid payment event.
+**Authorization**: visitor = anonymous read for active products/categories/tags; user = Auth + own profile/orders/payment read, backend RPC creates orders; admin = database-controlled role and RLS policies for CRUD. Never check `user_metadata` for admin roles. QPay callback and customer-initiated status verification both query the **QPay merchant API** before marking an order paid; browser values and callback parameters alone never grant paid status. QPay invoice credentials remain only in Supabase Secrets.
