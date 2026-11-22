@@ -1,4 +1,5 @@
 import Stripe from 'npm:stripe@^22'
+import { QPayError, qpayRequest, verifyQPayPayment } from '../_shared/qpay.ts'
 import { withSupabase } from 'npm:@supabase/server@^1'
 
 // User-scoped cancellation. The browser never receives Stripe or service-role secrets.
@@ -32,15 +33,21 @@ export default {
 
       // A previously opened Stripe Checkout must be closed FIRST.
       // A completed or paid session must never be cancelled or restocked.
-      if (order.payment_ref) {
-        if (!stripe) return Response.json({ error: 'Төлбөрийн серверийн тохиргоо дутуу байна.' }, { status: 503 })
+      if (order.payment_ref?.startsWith('qpay:')) {
+        const invoiceId = order.payment_ref.slice(5)
+        // A notification is not enough: check provider payment before cancelling.
+        const verified = await verifyQPayPayment(invoiceId, Number((await ctx.supabaseAdmin
+          .from('orders').select('total_amount').eq('id', order.id).single()).data?.total_amount))
+        if (verified.paid) return Response.json({ error: 'Төлөгдсөн QPay захиалгыг цуцлахгүй.' }, { status: 409 })
+        await qpayRequest('DELETE', '/v2/invoice/' + encodeURIComponent(invoiceId))
+      } else if (order.payment_ref) {
+        // Existing Stripe test orders remain cancellable during migration.
+        if (!stripe) return Response.json({ error: 'Хуучин төлбөрийн тохиргоо дутуу байна.' }, { status: 503 })
         const session = await stripe.checkout.sessions.retrieve(order.payment_ref)
         if (session.status === 'open') {
           await stripe.checkout.sessions.expire(session.id)
         } else if (session.status !== 'expired') {
-          return Response.json({
-            error: 'Checkout төлбөр хийгдсэн эсвэл боловсруулагдаж байна. Захиалгыг цуцлах боломжгүй.'
-          }, { status: 409 })
+          return Response.json({ error: 'Төлөгдсөн Stripe захиалгыг цуцлахгүй.' }, { status: 409 })
         }
       }
 
@@ -57,7 +64,7 @@ export default {
       return Response.json({ status: 'cancelled' })
     } catch (error) {
       console.error('Order cancellation error:', error instanceof Error ? error.message : 'Unknown')
-      return Response.json({ error: 'Stripe checkout-ийг шалгаж чадсангүй. Түр хүлээгээд дахин оролдоно уу.' }, { status: 502 })
+      return Response.json({ error: error instanceof QPayError ? error.message : 'Төлбөрийн нэхэмжлэхийг шалгаж чадсангүй.' }, { status: error instanceof QPayError ? error.status : 502 })
     }
   }),
 }
