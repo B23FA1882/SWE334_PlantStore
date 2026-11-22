@@ -40,7 +40,16 @@ export default {
       })
       if (!invoice || typeof invoice.invoice_id !== 'string') throw new QPayError(502, 'QPay нэхэмжлэхийн ID ирсэнгүй.')
       const urls = Array.isArray(invoice.urls)
-        ? invoice.urls.filter((item: any) => typeof item?.link === 'string' && /^https:\/\//.test(item.link)).slice(0, 20)
+        ? invoice.urls.filter((item: any) => {
+          if (typeof item?.link !== 'string' || item.link.length > 4000) return false
+          try {
+            const url = new URL(item.link)
+            // QPay returns both https URLs and bank-specific deep-link protocols.
+            // Forward them unmodified; block browser-injection schemes.
+            return /^[a-z][a-z0-9+.-]*:$/.test(url.protocol) &&
+              !['javascript:', 'data:', 'file:', 'blob:', 'vbscript:'].includes(url.protocol)
+          } catch { return false }
+        }).slice(0, 20)
         : []
       const qrImage = typeof invoice.qr_image === 'string' && invoice.qr_image.length < 900_000 ? invoice.qr_image : null
       const qrText = typeof invoice.qr_text === 'string' && invoice.qr_text.length < 12000 ? invoice.qr_text : null
