@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, BarChart3, Check, ChevronDown, Flower2, Heart, Leaf, LogIn, Menu, Minus, Plus, Search, ShoppingBag, SlidersHorizontal, Sprout, Trash2, UserRound, X } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { demoPlants, money } from './data/demoPlants'
 import { useStore } from './store/StoreProvider'
 import PlantArt from './components/PlantArt'
 import PlantShelf, { PlantDetail } from './components/PlantShelf'
+import Portfolio from './components/Portfolio'
 
 function Header() {
   const { cartCount, user, profile } = useStore()
@@ -19,7 +20,7 @@ function Header() {
       <nav className="hidden md:flex gap-9 text-sm font-medium text-[#68736a]">
         <NavLink to="/" end className={({isActive})=>isActive?'nav-active':'hover:text-[#234a36]'}>Нүүр</NavLink>
         <NavLink to="/shop" className={({isActive})=>isActive?'nav-active':'hover:text-[#234a36]'}>Ургамлууд</NavLink>
-        <a href="/#about" className="hover:text-[#234a36]">Бидний тухай</a>
+        <a href="/#about" className="hover:text-[#234a36]">Бидний тухай</a><NavLink to="/portfolio" className={({isActive})=>isActive?'nav-active':'hover:text-[#234a36]'}>Портфолио</NavLink>
         {profile?.role==='admin' && <NavLink to="/admin" className={({isActive})=>isActive?'nav-active':'hover:text-[#234a36]'}>Админ</NavLink>}
       </nav>
       <div className="flex items-center gap-2 sm:gap-4">
@@ -29,7 +30,7 @@ function Header() {
       </div>
     </div>
     {mobileOpen && <nav className="mobile-nav" onClick={()=>setMobileOpen(false)}>
-      <Link to="/">Нүүр</Link><Link to="/shop">Ургамлууд</Link><Link to="/cart">Сагс</Link><Link to={user?'/orders':'/auth'}>Миний бүртгэл</Link>{profile?.role==='admin'&&<Link to="/admin">Админ</Link>}
+      <Link to="/">Нүүр</Link><Link to="/shop">Ургамлууд</Link><Link to="/cart">Сагс</Link><Link to="/portfolio">Портфолио</Link><Link to={user?'/orders':'/auth'}>Миний бүртгэл</Link>{profile?.role==='admin'&&<Link to="/admin">Админ</Link>}
     </nav>}
   </header>
 }
@@ -41,7 +42,7 @@ function Footer() {
       <div><h4 className="font-medium mb-3">Дэлгүүр</h4><Link className="text-sm text-[#687869] hover:underline" to="/shop">Бүх ургамал</Link><p className="text-sm text-[#687869] mt-2">Арчилгааны зөвлөгөө бүтээгдэхүүн бүрд</p></div>
       <div><h4 className="font-medium mb-3">Холбоо барих</h4><p className="text-sm text-[#687869]">Улаанбаатар, Монгол</p><p className="text-sm text-[#687869] mt-2">88325880</p></div>
     </div>
-    <p className="pb-6 text-center text-xs text-[#9aa399]">© 2026 GREENROOM. All plants deserve a good home.</p>
+    <p className="pb-6 text-center text-xs text-[#9aa399]">© 2026 GREENROOM. Ургамал бүр дулаан орчинтой байх эрхтэй. <Link to="/portfolio" className="underline ml-2">Миний портфолио</Link></p>
   </footer>
 }
 
@@ -61,24 +62,24 @@ function Home() {
     <section className="home-hero">
       <div className="max-w-[1260px] mx-auto px-6 md:px-10 relative z-10 pt-20 md:pt-28 pb-14 md:pb-16">
         <div className="max-w-[760px] mx-auto text-center">
-          <p className="eyebrow tracking-[.28em] flex justify-center items-center gap-2"><Leaf size={15}/> OFFICE PLANT STUDIO · УЛААНБААТАР</p>
-          <h1 className="serif text-[clamp(54px,8.4vw,118px)] leading-[.95] tracking-[-.046em] mt-6 text-[#254b37]">Bring nature <em className="font-normal">inside.</em></h1>
+          <p className="eyebrow tracking-[.28em] flex justify-center items-center gap-2"><Leaf size={15}/> ОФФИСЫН УРГАМЛЫН ДЭЛГҮҮР · УЛААНБААТАР</p>
+          <h1 className="serif text-[clamp(54px,8.4vw,118px)] leading-[.95] tracking-[-.046em] mt-6 text-[#254b37]">Байгалиа <em className="font-normal">гэртээ.</em></h1>
           <p className="mt-7 text-[#6c786d] text-base md:text-lg max-w-[550px] mx-auto leading-relaxed">Ажлын ширээнээс оффисын булан хүртэл — өдөр бүрийг илүү ногоон, тайван, бүтээлч болгох ургамлууд.</p>
           <div className="mt-9 flex justify-center gap-3 flex-wrap"><Link className="primary-btn" to="/shop">Ургамлууд үзэх <ArrowRight size={18}/></Link><a href="#collection" className="secondary-btn">Тавиуртай танилцах <ChevronDown size={17}/></a></div>
         </div>
-        <div className="flex items-center justify-center gap-7 sm:gap-12 mt-16 text-[#9ba596] uppercase text-[10px] sm:text-xs tracking-[.19em]"><span>Thoughtful greenery</span><span className="w-1 h-1 bg-[#a7b6a2] rounded-full"/><span>Carefully curated</span><span className="w-1 h-1 bg-[#a7b6a2] rounded-full"/><span>Made for workspaces</span></div>
+        <div className="flex items-center justify-center gap-7 sm:gap-12 mt-16 text-[#9ba596] uppercase text-[10px] sm:text-xs tracking-[.19em]"><span>Ногоон амьдрал</span><span className="w-1 h-1 bg-[#a7b6a2] rounded-full"/><span>Нямбай сонголт</span><span className="w-1 h-1 bg-[#a7b6a2] rounded-full"/><span>Ажлын орчинд зориулав</span></div>
       </div>
     </section>
     <section className="max-w-[1160px] mx-auto px-5 sm:px-9 pt-16" id="collection">
       <div className="flex flex-col sm:flex-row gap-4 sm:items-end sm:justify-between mb-12">
-        <div><p className="eyebrow">01 / THE COLLECTION</p><h2 className="serif text-4xl sm:text-6xl text-[#284d39] mt-3">The living shelf<span className="text-[#b7c5b5]">.</span></h2><p className="text-[#879185] mt-3">Таалагдсан ургамал дээрээ дараад дэлгэрэнгүй үзээрэй.</p></div>
+        <div><p className="eyebrow">01 / УРГАМЛЫН ЦУГЛУУЛГА</p><h2 className="serif text-4xl sm:text-6xl text-[#284d39] mt-3">Амьд ургамлын тавиур<span className="text-[#b7c5b5]">.</span></h2><p className="text-[#879185] mt-3">Таалагдсан ургамал дээрээ дараад дэлгэрэнгүй үзээрэй.</p></div>
         <Link to="/shop" className="text-sm font-medium text-[#345640] flex items-center gap-2 hover:underline">Бүгдийг үзэх <ArrowRight size={17}/></Link>
       </div>
       {loadingProducts && <p className="text-center text-sm text-[#8d9889] pb-8">Ургамлуудыг ачаалж байна...</p>}
       <PlantShelf plants={products.slice(0,12)}/>
     </section>
     <section id="about" className="mx-auto max-w-[1180px] mt-20 px-6"><div className="about-panel">
-      <div className="relative"><p className="eyebrow text-[#b7c9b2]">A LITTLE MORE GREEN</p><h2 className="serif text-4xl md:text-6xl leading-tight mt-5">Good spaces <em>grow</em> good ideas.</h2><p className="text-[#ceddd0] max-w-md mt-5 leading-relaxed">Оффисын орон зайгаа өөрчлөхөд их зүйл хэрэггүй. Зөв сонгосон ганц ургамлаас бүх зүйл эхэлнэ.</p><Link to="/shop" className="inline-flex items-center gap-2 bg-[#f4f4e9] text-[#31553c] rounded-full px-6 py-3 mt-7 text-sm font-semibold">Ургамлаа сонгох <ArrowRight size={17}/></Link></div>
+      <div className="relative"><p className="eyebrow text-[#b7c9b2]">НОГООН ОРЧИН</p><h2 className="serif text-4xl md:text-6xl leading-tight mt-5">Ногоон орчин <em>шинэ санаа</em> төрүүлнэ.</h2><p className="text-[#ceddd0] max-w-md mt-5 leading-relaxed">Оффисын орон зайгаа өөрчлөхөд их зүйл хэрэггүй. Зөв сонгосон ганц ургамлаас бүх зүйл эхэлнэ.</p><Link to="/shop" className="inline-flex items-center gap-2 bg-[#f4f4e9] text-[#31553c] rounded-full px-6 py-3 mt-7 text-sm font-semibold">Ургамлаа сонгох <ArrowRight size={17}/></Link></div>
       <div className="flex justify-center items-end"><PlantArt plant={demoPlants[0]} className="w-60 h-[270px] sm:w-[310px] sm:h-[340px] drop-shadow-2xl"/></div>
     </div></section>
   </>
@@ -114,7 +115,7 @@ function Shop() {
   const perPage=8
   const pages=Math.max(1,Math.ceil(filtered.length/perPage))
   return <main className="page-shell">
-    <div className="section-heading"><p className="eyebrow">BOTANICAL COLLECTION</p><h1 className="serif">Find your green <em>companion.</em></h1><p>Таны ажлын орчинд тохирох ургамлыг хайж олоорой.</p></div>
+    <div className="section-heading"><p className="eyebrow">УРГАМЛЫН ЦУГЛУУЛГА</p><h1 className="serif">Өөрийн <em>ургамлаа олоорой.</em></h1><p>Таны ажлын орчинд тохирох ургамлыг хайж олоорой.</p></div>
     <div className="filters">
       <label className="searchbox"><Search size={19}/><input placeholder="Нэрээр хайх..." aria-label="Ургамал хайх" value={search} onChange={e=>setSearch(e.target.value)}/></label>
       <label><span className="sr-only">Ангилал</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></label>
@@ -155,7 +156,7 @@ function Auth() {
     } catch(err){setError(err.message)} finally {setBusy(false)}
   }
   return <main className="page-shell flex justify-center"><div className="auth-card">
-    <div className="text-center"><span className="brand-mark mx-auto mb-5"><Sprout size={23}/></span><p className="eyebrow">WELCOME TO GREENROOM</p><h1 className="serif text-4xl mt-3">{mode==='register'?'Бүртгэл үүсгэх':mode==='reset'?'Нууц үг сэргээх':'Тавтай морил'}</h1><p className="text-sm text-[#829085] mt-3">{mode==='register'?'Ногоон ертөнцийн нэг хэсэг болоорой':mode==='reset'?'Бүртгэлтэй и-мэйлээ оруулна уу':'Бүртгэлээрээ нэвтрэн захиалгаа удирдаарай'}</p></div>
+    <div className="text-center"><span className="brand-mark mx-auto mb-5"><Sprout size={23}/></span><p className="eyebrow">GREENROOM-Д ТАВТАЙ МОРИЛ</p><h1 className="serif text-4xl mt-3">{mode==='register'?'Бүртгэл үүсгэх':mode==='reset'?'Нууц үг сэргээх':'Тавтай морил'}</h1><p className="text-sm text-[#829085] mt-3">{mode==='register'?'Ногоон ертөнцийн нэг хэсэг болоорой':mode==='reset'?'Бүртгэлтэй и-мэйлээ оруулна уу':'Бүртгэлээрээ нэвтрэн захиалгаа удирдаарай'}</p></div>
     <form onSubmit={submit} className="mt-8 space-y-4">{mode==='register'&&<label className="form-field">Таны нэр<input required minLength="2" value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Бүтэн нэр"/></label>}
       <label className="form-field">И-мэйл<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>
       {mode!=='reset'&&<label className="form-field">Нууц үг<input required type="password" minLength={mode==='register'?8:1} autoComplete={mode==='register'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>}
@@ -188,7 +189,7 @@ function Cart() {
     catch(err){setError(err.message)}
     finally{setBusy(false)}
   }
-  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">YOUR GREEN BAG</p><h1 className="serif">Таны сагс</h1><p>{cart.length} төрлийн ургамал</p></div>
+  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">МИНИЙ САГС</p><h1 className="serif">Таны сагс</h1><p>{cart.length} төрлийн ургамал</p></div>
     {!cart.length?<div className="space-y-4">
       <div className="flex justify-end">
         <Link to="/shop" className="primary-btn">Ургамал сонгох <ArrowRight size={17}/></Link>
@@ -255,7 +256,7 @@ function Orders() {
     catch(err){setError('Төлбөрийн үйлчилгээ одоогоор идэвхгүй: '+err.message)}
     finally{setPaying(null)}
   }
-  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">YOUR ACCOUNT</p><h1 className="serif">Миний захиалгууд</h1><p>Сайн байна уу, {profile?.full_name || user.email}</p><button className="secondary-btn mt-5" onClick={signOut}><LogIn size={17}/> Гарах</button></div>
+  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">МИНИЙ БҮРТГЭЛ</p><h1 className="serif">Миний захиалгууд</h1><p>Сайн байна уу, {profile?.full_name || user.email}</p><button className="secondary-btn mt-5" onClick={signOut}><LogIn size={17}/> Гарах</button></div>
     {error&&<p className="error-text mb-6" role="alert">{error}</p>}
     {loading?<div className="empty-state">Захиалга ачаалж байна...</div>:!orders.length?<div className="space-y-4">
       <div className="flex justify-end">
@@ -326,7 +327,7 @@ function Admin() {
   const revenue=orders.filter(o=>o.status==='paid').reduce((a,o)=>a+Number(o.total_amount),0)
   const latest=orders.slice(0,6).reverse()
   const max=Math.max(1,...latest.map(o=>Number(o.total_amount)))
-  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">MANAGEMENT / GREENROOM</p><h1 className="serif">Админ самбар</h1><p>Бүтээгдэхүүн, захиалга, орлогын удирдлага</p></div>
+  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">GREENROOM / УДИРДЛАГА</p><h1 className="serif">Админ самбар</h1><p>Бүтээгдэхүүн, захиалга, орлогын удирдлага</p></div>
     <div className="grid sm:grid-cols-3 gap-4 mb-10"><div className="stat-card"><span>Бүтээгдэхүүн</span><strong>{products.length}</strong><Leaf size={21}/></div><div className="stat-card"><span>Захиалга</span><strong>{orders.length}</strong><ShoppingBag size={21}/></div><div className="stat-card"><span>Төлөгдсөн орлого</span><strong className="text-2xl">{money(revenue)}</strong><BarChart3 size={21}/></div></div>
     <div className="flex gap-3 overflow-auto border-b border-[#dce2d5] mb-8 pb-3">{[['products','Бүтээгдэхүүн'],['orders','Захиалга'],['users','Хэрэглэгч'],['payments','Төлбөр']].map(([value,label])=><button key={value} className={tab===value?'tab-active':'tab'} onClick={()=>setTab(value)}>{label}</button>)}</div>
     {error&&<p className="error-text mb-4" role="alert">{error}</p>}{notice&&<p className="success-text mb-4">{notice}</p>}
@@ -353,6 +354,8 @@ function Admin() {
 function NotFound() {return <main className="page-shell empty-state"><Flower2 size={42} className="mx-auto mb-5"/><h1 className="serif text-4xl mb-3">Хуудас олдсонгүй</h1><Link to="/" className="primary-btn w-fit mx-auto mt-4">Нүүр рүү <ArrowRight size={17}/></Link></main>}
 
 export default function App() {
+  const location = useLocation()
+  if (location.pathname === '/portfolio') return <Portfolio />
   return <div className="min-h-screen flex flex-col"><Header/><Notice/><div className="flex-1">
     <Routes><Route path="/" element={<Home/>}/><Route path="/shop" element={<Shop/>}/><Route path="/plant/:slug" element={<PlantRoute/>}/><Route path="/auth" element={<Auth/>}/><Route path="/reset-password" element={<ResetPassword/>}/><Route path="/cart" element={<Cart/>}/><Route path="/orders" element={<RequireUser><Orders/></RequireUser>}/><Route path="/admin" element={<RequireUser admin><Admin/></RequireUser>}/><Route path="*" element={<NotFound/>}/></Routes>
   </div><Footer/></div>
