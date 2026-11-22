@@ -226,6 +226,8 @@ function Orders() {
   const [error,setError]=useState('')
   const [paying,setPaying]=useState(null)
   const [canceling,setCanceling]=useState(null)
+  const [invoice,setInvoice]=useState(null)
+  const [checking,setChecking]=useState(false)
   useEffect(()=>{
     if(!supabase||!user)return
     let alive=true
@@ -251,11 +253,37 @@ function Orders() {
   const signOut=async()=>{await supabase.auth.signOut()}
   const pay=async order=>{
     setPaying(order.id);setError('')
-    try{const {data,error}=await supabase.functions.invoke('create-checkout',{body:{orderId:order.id}});if(error)throw error;if(!data?.url)throw new Error(data?.error||'Checkout URL олдсонгүй');window.location.assign(data.url)}
-    catch(err){setError('Төлбөрийн үйлчилгээ одоогоор идэвхгүй: '+err.message)}
+    try{
+      const {data,error}=await supabase.functions.invoke('qpay-invoice',{body:{orderId:order.id}})
+      if(error){
+        let message=error.message
+        try{const details=await error.context?.json();message=details?.error||message}catch{/* provider response may be unavailable */}
+        throw new Error(message)
+      }
+      if(!data?.invoice_id)throw new Error('QPay нэхэмжлэх үүссэнгүй.')
+      setInvoice({orderId:order.id,...data})
+    }catch(err){setError('QPay төлбөр: '+err.message)}
     finally{setPaying(null)}
   }
-  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">YOUR ACCOUNT</p><h1 className="serif">Миний захиалгууд</h1><p>Сайн байна уу, {profile?.full_name || user.email}</p><button className="secondary-btn mt-5" onClick={signOut}><LogIn size={17}/> Гарах</button></div>
+  const checkPayment=async()=>{
+    if(!invoice)return
+    setChecking(true);setError('')
+    try{
+      const {data,error}=await supabase.functions.invoke('qpay-status',{body:{orderId:invoice.orderId}})
+      if(error){
+        let message=error.message
+        try{const details=await error.context?.json();message=details?.error||message}catch{/* response unavailable */}
+        throw new Error(message)
+      }
+      if(data?.status==='paid'){
+        setOrders(items=>items.map(item=>item.id===invoice.orderId?{...item,status:'paid'}:item))
+        setInvoice(null)
+      }else setError('QPay төлбөр хараахан баталгаажаагүй байна. Төлбөр хийсний дараа дахин шалгана уу.')
+    }catch(err){setError('QPay шалгалт: '+err.message)}
+    finally{setChecking(false)}
+  }
+
+  return <main className="page-shell"><div className="section-heading"><p className="eyebrow">МИНИЙ БҮРТГЭЛ</p><h1 className="serif">Миний захиалгууд</h1><p>Сайн байна уу, {profile?.full_name || user.email}</p><button className="secondary-btn mt-5" onClick={signOut}><LogIn size={17}/> Гарах</button></div>
     {error&&<p className="error-text mb-6" role="alert">{error}</p>}
     {loading?<div className="empty-state">Захиалга ачаалж байна...</div>:!orders.length?<div className="space-y-4">
       <div className="flex justify-end">
@@ -265,7 +293,18 @@ function Orders() {
         <ShoppingBag size={36} aria-hidden="true"/>
         <p>Захиалгын түүх хоосон байна.</p>
       </div>
-    </div>:<div className="space-y-5">{orders.map(o=><article className="order-card" key={o.id}><div className="flex flex-wrap gap-4 justify-between items-start"><div><p className="text-xs text-[#92a093]">#{o.id.slice(0,8)} · {new Date(o.created_at).toLocaleDateString('mn-MN')}</p><h3 className="text-xl font-semibold mt-2">{money(o.total_amount)}</h3></div><span className={o.status==='paid'?'status-paid':'status-pending'}>{o.status==='paid'?'Төлөгдсөн':o.status==='cancelled'?'Цуцлагдсан':'Хүлээгдэж буй'}</span></div><div className="mt-4 text-sm text-[#748274] space-y-1">{o.order_items?.map((i,j)=><p key={j}>{i.products?.name || 'Ургамал'} × {i.quantity} · {money(i.unit_price)}</p>)}</div>{o.status==='pending'&&<div className="flex flex-wrap gap-3 mt-5"><button disabled={paying===o.id||canceling===o.id} className="primary-btn" onClick={()=>pay(o)}>{paying===o.id?'Шилжүүлж байна...':'Төлбөр төлөх (Stripe test)'}<ArrowRight size={17}/></button><button disabled={paying===o.id||canceling===o.id} className="secondary-btn" onClick={()=>cancelOrder(o)}><Trash2 size={17}/>{canceling===o.id?'Цуцалж байна...':'Захиалга цуцлах'}</button></div>}</article>)}</div>}
+    </div>:<div className="space-y-5">{orders.map(o=><article className="order-card" key={o.id}><div className="flex flex-wrap gap-4 justify-between items-start"><div><p className="text-xs text-[#92a093]">#{o.id.slice(0,8)} · {new Date(o.created_at).toLocaleDateString('mn-MN')}</p><h3 className="text-xl font-semibold mt-2">{money(o.total_amount)}</h3></div><span className={o.status==='paid'?'status-paid':'status-pending'}>{o.status==='paid'?'Төлөгдсөн':o.status==='cancelled'?'Цуцлагдсан':'Хүлээгдэж буй'}</span></div><div className="mt-4 text-sm text-[#748274] space-y-1">{o.order_items?.map((i,j)=><p key={j}>{i.products?.name || 'Ургамал'} × {i.quantity} · {money(i.unit_price)}</p>)}</div>{o.status==='pending'&&<div className="flex flex-wrap gap-3 mt-5"><button disabled={paying===o.id||canceling===o.id} className="primary-btn" onClick={()=>pay(o)}>{paying===o.id?'Шилжүүлж байна...':'QPay-аар төлөх'}<ArrowRight size={17}/></button><button disabled={paying===o.id||canceling===o.id} className="secondary-btn" onClick={()=>cancelOrder(o)}><Trash2 size={17}/>{canceling===o.id?'Цуцалж байна...':'Захиалга цуцлах'}</button></div>}</article>)}</div>}
+    {invoice&&<div className="fixed inset-0 z-50 bg-[#15251b]/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="QPay төлбөр">
+      <div className="bg-[#fafaf5] text-[#254b37] w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl max-h-[94vh] overflow-y-auto">
+        <div className="flex justify-between gap-4 items-center"><div><p className="eyebrow">QPay ТӨЛБӨР</p><h2 className="serif text-3xl mt-2">QR кодоор төлөх</h2></div><button className="rounded-full border border-[#d6e1d1] p-2" onClick={()=>setInvoice(null)} aria-label="Хаах"><X size={20}/></button></div>
+        <p className="mt-4 text-sm text-[#65766b]">Банкны аппликейшнээр QR кодыг уншуулж төлнө үү. Дараа нь төлбөрөө шалгана.</p>
+        {invoice.qr_image?<img className="mx-auto my-5 w-60 h-60 object-contain rounded-2xl bg-white p-3" alt="QPay төлбөрийн QR код" src={invoice.qr_image.startsWith('data:image/')?invoice.qr_image:`data:image/png;base64,${invoice.qr_image}`}/>:<p className="my-7 text-center text-sm text-[#8e7456]">QR зураг буцаагдаагүй. Доорх банкны холбоосоор төлнө үү.</p>}
+        <div className="text-center font-semibold text-2xl">{money(invoice.amount)}</div>
+        {invoice.urls?.length>0&&<div className="flex flex-wrap gap-2 justify-center mt-5">{invoice.urls.map((link,i)=><a key={i} href={link.link} target="_blank" rel="noopener noreferrer" className="secondary-btn text-xs">{link.name||'Банкны апп'} <ArrowRight size={14}/></a>)}</div>}
+        <button className="primary-btn w-full justify-center mt-6" disabled={checking} onClick={checkPayment}>{checking?'Шалгаж байна...':'Төлбөр шалгах'} <Check size={17}/></button>
+        <button className="w-full mt-4 text-sm underline" onClick={()=>setInvoice(null)}>Дараа төлөх</button>
+      </div>
+    </div>}
   </main>
 }
 
