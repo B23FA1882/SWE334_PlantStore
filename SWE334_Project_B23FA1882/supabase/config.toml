@@ -1,10 +1,19 @@
-# Checkout requires an authenticated customer JWT.
-[functions.create-checkout]
+# QPay Merchant V2: user-only invoice/status, verified public callback.
+[functions.qpay-invoice]
 verify_jwt = true
 
-# Stripe posts a signed webhook, not a Supabase JWT.
-[functions.cancel-order]
+[functions.qpay-status]
+verify_jwt = true
+
+[functions.qpay-callback]
+verify_jwt = false
+
+# Historical Stripe functions retained for already-issued sandbox sessions.
+[functions.create-checkout]
 verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.cancel-order]
+verify_jwt = true
