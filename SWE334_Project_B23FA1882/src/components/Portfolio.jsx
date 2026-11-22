@@ -16,9 +16,9 @@ const person = {
 
 const skills = ['React', 'JavaScript', 'Tailwind CSS', 'Supabase', 'PostgreSQL', 'GitHub', 'Vercel', 'BigQuery']
 const projects = [
-  { id: '01', type: 'Веб', title: 'GREENROOM', subtitle: 'Оффисын ургамлын дэлгүүр', description: 'Ургамлын интерактив тавиур, сагс, хэрэглэгчийн эрх, бүтээгдэхүүний удирдлага бүхий full-stack React + Supabase төсөл.', href: 'https://swe-334-plant-store.vercel.app', code: 'https://github.com/B23FA1882/SWE334_PlantStore', style: 'from-[#dce6d3] to-[#f5f1e6]', symbol: '🌿' },
-  { id: '02', type: 'Веб', title: 'ISM DIGITAL MUSEUM', subtitle: 'Интерактив дижитал музей', description: 'Тэнхимийн түүх, багш нар, үйл явдал болон оюутны бүтээлийг нэг дор танилцуулах React + Supabase апп.', href: 'https://github.com/B23FA1882/SWE334_ISMmuseum', code: 'https://github.com/B23FA1882/SWE334_ISMmuseum', style: 'from-[#dce3f3] to-[#f6f0ef]', symbol: '🏛️' },
-  { id: '03', type: 'Өгөгдөл', title: 'DATA QUALITY LAB', subtitle: 'BigQuery өгөгдлийн чанарын шинжилгээ', description: 'SQL ашиглан өгөгдөл цэвэрлэх, шалгах, DQ бүртгэл үүсгэх болон алдааг ангилсан сургалтын ажил. Шууд төслийн холбоосыг нэмж баталгаажуулах шаардлагатай.', href: 'https://github.com/B23FA1882?tab=repositories', code: 'https://github.com/B23FA1882?tab=repositories', style: 'from-[#f0e1cf] to-[#faf4e9]', symbol: '📊' },
+  { id: '01', type: 'Веб', title: 'GREENROOM', subtitle: 'Оффисын ургамлын дэлгүүр', description: 'Ургамлын интерактив тавиур, сагс, хэрэглэгчийн эрх, бүтээгдэхүүний удирдлага бүхий full-stack React + Supabase төсөл.', href: 'https://swe-334-plant-store.vercel.app', code: 'https://github.com/B23FA1882/SWE334_PlantStore', style: 'from-[#dce6d3] to-[#f5f1e6]', image: '/portfolio/greenroom.svg' },
+  { id: '02', type: 'Веб', title: 'ISM DIGITAL MUSEUM', subtitle: 'Интерактив дижитал музей', description: 'Тэнхимийн түүх, багш нар, үйл явдал болон оюутны бүтээлийг нэг дор танилцуулах React + Supabase апп.', href: 'https://github.com/B23FA1882/SWE334_ISMmuseum', code: 'https://github.com/B23FA1882/SWE334_ISMmuseum', style: 'from-[#dce3f3] to-[#f6f0ef]', image: '/portfolio/museum.svg' },
+  { id: '03', type: 'Өгөгдөл', title: 'DATA QUALITY LAB', subtitle: 'BigQuery өгөгдлийн чанарын шинжилгээ', description: 'SQL ашиглан өгөгдөл цэвэрлэх, шалгах, DQ бүртгэл үүсгэх болон алдааг ангилсан сургалтын ажил. Шууд төслийн холбоосыг нэмж баталгаажуулах шаардлагатай.', href: 'https://github.com/B23FA1882?tab=repositories', code: 'https://github.com/B23FA1882?tab=repositories', style: 'from-[#f0e1cf] to-[#faf4e9]', image: '/portfolio/data-quality.svg' },
 ]
 
 export default function Portfolio() {
@@ -62,7 +62,7 @@ export default function Portfolio() {
       </div>
       <div className="grid md:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">{visible.map(p=><motion.article key={p.id} layout initial={{opacity:0,scale:.96}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:.96}} whileHover={{y:-6}} className={`rounded-3xl border overflow-hidden ${card}`}>
-          <div className={`h-44 bg-gradient-to-br ${p.style} flex items-center justify-center relative`}><span aria-hidden="true" className="text-7xl">{p.symbol}</span><span className="absolute top-5 left-5 text-xs font-bold tracking-widest text-[#314e3b]">{p.id}</span></div>
+          <div className={`h-44 bg-gradient-to-br ${p.style} flex items-center justify-center relative`}><img src={p.image} alt={p.title + ' төслийн дүрслэл'} loading="lazy" className="w-full h-full object-cover"/><span className="absolute top-5 left-5 text-xs font-bold tracking-widest text-[#314e3b]">{p.id}</span></div>
           <div className="p-6"><span className={`text-xs font-semibold tracking-widest ${muted}`}>{p.type}</span><h3 className="font-bold text-xl mt-2">{p.title}</h3><p className="font-medium text-sm mt-1">{p.subtitle}</p><p className={`text-sm leading-relaxed mt-4 min-h-[120px] ${muted}`}>{p.description}</p>
           <div className="flex gap-4 flex-wrap mt-4"><a href={p.href} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1">Төсөл үзэх <ArrowUpRight size={15}/></a><a href={p.code} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1">Код <Github size={15}/></a></div>
           </div>
