@@ -1,6 +1,6 @@
 # GREENROOM — Office Plant Store (SWE334)
 
-**React (Vite + JavaScript) · Tailwind CSS · Motion · Supabase · Stripe test · GitHub · Vercel**
+**React (Vite + JavaScript) · Tailwind CSS · Motion · Supabase · QPay sandbox · GitHub · Vercel**
 
 A plant and flower store for modern offices in Mongolia. The UI adapts the **interaction concept** from a provided 21st.dev skincare-product-shelf reference: three floating shelves, product-to-detail spring animation, responsive browsing, and an interactive cart. The cosmetics have been replaced with **original SVG plant illustrations** and Mongolian copy, care instructions and MNT prices.
 
@@ -9,7 +9,8 @@ A plant and flower store for modern offices in Mongolia. The UI adapts the **int
 - **Guest** — landing page, 12-item shelf, catalog, search by name, category and max price, sorting, pagination and details.
 - **Customer** — register/login/logout/password reset, persistent cart, order placement and own order history. Order total and stock are calculated/validated server-side by an RPC.
 - **Admin** — products CRUD + file preview/Storage upload, order/user/payment lists, order and revenue stats. Admin role is stored in RLS-protected `profiles.role`, not user-editable metadata.
-- **Payment (requires Stripe test credentials)** — browser opens hosted test Checkout; signed Edge webhook confirms payment and changes order from `pending` to `paid`.
+- **QPay (sandbox credentials required)** — authenticated customer receives QPay QR/bank links, backend verifies payments directly with QPay Merchant V2, then marks order as paid. Existing Stripe functions are retained for historical pending test orders only.
+- **Portfolio (SWE334 assignment 2)** — creative, responsive Mongolian portfolio at `/portfolio` with about, skills, three project cards and contacts. Personal fields must be reviewed before public submission.
 
 ## 1. Run locally
 
@@ -46,19 +47,26 @@ The UI starts in **preview mode** without `.env.local`, using 12 local sample pl
 
 6. Sign out and back in to access `/admin`. Test a product update and check **Table Editor** + **Storage**.
 
-> Do not put `service_role`, a Stripe secret, or a webhook signing secret into a `VITE_*` variable: Vite embeds those variables in browser code.
+> Do not put `service_role` or any QPay/Stripe merchant credentials into a `VITE_*` variable: Vite embeds those variables in browser code.
 
-## 3. Stripe **test mode** payments (later stage)
+## 3. QPay Merchant V2 sandbox — Монгол төгрөгийн QR төлбөр
 
-Requires a Stripe test account and test API secrets; not enabled by merely pushing to GitHub.
+**QPay merchant sandbox credentials are NOT stored in this repository.** Request a sandbox merchant account from QPay and obtain a merchant **client ID**, **client secret**, and **invoice code**. QPay's official guide: https://developer.qpay.mn/mn/docs/merchant?version=2.0.0.
 
-1. Configure Supabase Edge Function secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `SITE_URL` (your site origin).
-2. Deploy `create-checkout` (requires a customer JWT) and `stripe-webhook` (no Supabase JWT; **signed Stripe webhook required**). See `supabase/config.toml` for JWT policy. The webhook endpoint is `https://YOUR_REF.supabase.co/functions/v1/stripe-webhook`.
-3. Add this URL under Stripe **Developers > Webhooks** (test mode), subscribe to `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Copy its signing secret to Supabase.
-4. Confirm an order as a customer, click **Төлбөр төлөх (Stripe test)**, use a Stripe test card, then watch `orders.status` change to `paid` and `payments` populate after a signed webhook.
-5. Stripe MNT amounts are passed in minor units (`price * 100`). Check Stripe merchant-country/currency support before using real charges. This repository does **not** collect real payments.
+1. In Supabase SQL Editor, run `supabase/sql/qpay-invoices.sql` once on the existing GREENROOM DB (adds a **9th table** with owner-only read RLS). On a clean database, run the original migration first.
+2. In Supabase **Edge Functions → Secrets**, configure these server-only values:
+   - `QPAY_CLIENT_ID` — QPay merchant client ID.
+   - `QPAY_CLIENT_SECRET` — QPay merchant secret.
+   - `QPAY_INVOICE_CODE` — your merchant invoice code.
+   - `QPAY_BASE_URL` = `https://merchant-sandbox.qpay.mn` (sandbox; never switch to production until the merchant is approved).
+   - `QPAY_RECEIVER_CODE` — only if QPay assigned a different receiver code (the sample defaults to `terminal`).
+3. Deploy `qpay-invoice` (authenticated), `qpay-status` (authenticated), `qpay-callback` (**public URL**, verified with QPay server-side), and the updated `cancel-order` function. Their source is in `supabase/functions/`; deployment JWT settings in `supabase/config.toml`. Use the Supabase Dashboard or CLI for deployment; include `_shared/qpay.ts`.
+4. QPay callback URL is generated automatically from Supabase `SUPABASE_URL`, e.g. `https://YOUR_REF.supabase.co/functions/v1/qpay-callback?order_id=...`. Do **not** expose QPay credentials in the frontend or manually call the callback to mark payments paid.
+5. Create a **new** order, click **QPay-аар төлөх**, display QR and bank links returned by QPay, then use **Төлбөр шалгах** after sandbox payment. Check `orders.status='paid'` and `payments.provider='qpay'`. Test QPay callback delivery and cancellation independently.
 
-If the Edge Functions are not deployed, order creation still works and payment remains pending. Do not manually mark an unverified payment as paid.
+The legacy `create-checkout` and `stripe-webhook` Edge Functions are retained so previously created Stripe test orders can be handled during transition. Existing Stripe `payment_ref` orders cannot be converted to QPay; create a new order (or safely cancel an unpaid old one). QPay status checking is **manual**, not aggressive polling. Never mark an order paid solely from user input or callback parameters.
+
+**NOT LIVE:** Until QPay grants merchant sandbox credentials and full paid/cancel/refund checks pass, this is a QPay **integration implementation**, not a verified working payment system.
 
 
 ## Cancel an unpaid order
@@ -69,13 +77,13 @@ and remains visible to the admin as `cancelled`. The database restores the
 reserved stock exactly once. Paid/completed Checkout sessions cannot be cancelled.
 
 The secured flow is **authenticated customer → cancel-order Edge Function →
-expire Stripe Checkout session (if any) → service-role-only cancellation RPC**.
+expire/void the corresponding QPay invoice (or historical Stripe session) → service-role-only cancellation RPC**.
 This avoids client-side cancellation of another user's order or resetting a
 paid order. The RPC source is stored at
 `supabase/sql/cancel-order-service.sql`; deploy it to a fresh project via SQL
 Editor, and deploy `supabase/functions/cancel-order/index.ts` with JWT
 verification enabled. Existing projects require this SQL update in addition to
-the original schema. The secret key stays in Supabase Edge Function Secrets.
+the original schema. QPay and historical Stripe secrets stay in Supabase Edge Function Secrets.
 
 ## 4. Vercel deployment
 
@@ -83,17 +91,34 @@ the original schema. The secret key stays in Supabase Edge Function Secrets.
 2. Set **Root Directory** to `SWE334_Project_B23FA1882`.
 3. Framework Vite; Build Command `npm run build`; Output Directory `dist`.
 4. Add the two `VITE_SUPABASE_...` values in Vercel **Environment Variables**; deploy.
-5. Configure **Domains** for your own domain (DNS + HTTPS), update Supabase Auth redirect URLs and `SITE_URL` for checkout. `vercel.json` rewrites client-side routes to `index.html`.
+5. Configure **Domains** for your own domain (DNS + HTTPS), update Supabase Auth redirect URLs. QPay callback uses the Supabase Function's public HTTPS URL. `vercel.json` rewrites client-side routes to `index.html`.
 
 ## Documentation and hand-in
 
-- [ERD (8 tables)](docs/ERD.md) — 1:N and N:M, PK/FK, RLS.
+- [ERD (8 core tables)](docs/ERD.md) — 1:N and N:M, PK/FK, RLS. **QPay adds a 9th supporting table:** `qpay_invoices`, linked 1:1 to `orders`; update the ERD slide before final defense.
 - [Wireframe + user flows](docs/WIREFRAME.md) — guest, customer and admin workflows.
-- Source: `src/App.jsx` (React Router pages), `src/store/StoreProvider.jsx` (auth/data/cart), `src/components/PlantShelf.jsx` (Motion shelf), `src/components/PlantArt.jsx` (original SVG), SQL migration, two Edge Functions.
+- Source: `src/App.jsx` (React Router pages), `src/store/StoreProvider.jsx` (auth/data/cart), `src/components/PlantShelf.jsx` (Motion shelf), `src/components/PlantArt.jsx` (original SVG), SQL migration, QPay and legacy Stripe Edge Functions.
 - For Defense-1: run on localhost, show Auth + RLS + real CRUD, show mobile viewport, explain how `place_order` protects prices/stock, and bring slides in both PPT and PDF formats.
 
 ## Remaining validation before production
 
-Run `npm install && npm run build && npm run lint`. Validate email confirmation, RLS using separate users, image uploads, checkout via webhook and Vercel. The app is an **MVP**, not a verified production payment service.
+Run `npm install && npm run build && npm run lint`. Validate email confirmation, RLS using separate users, image uploads, QPay sandbox callback and server-side payment verification, cancellation and Vercel. The app is an **MVP**, not a verified production payment service.
 
 Design inspiration: 21st.dev shelf interaction reference supplied for the assignment. Plant illustrations and copy are original coursework adaptations.
+
+## 5. SWE334 Бие даалт 2 — Хувийн портфолио
+
+Open `/portfolio` (e.g. `https://swe-334-plant-store.vercel.app/portfolio`). It contains:
+- Танилцуулга + нэг өгүүлбэрийн уриа
+- Миний тухай + эзэмшсэн технологи
+- 3 төслийн карт + тайлбар + холбоос
+- Холбоо барих (имэйл, GitHub)
+- Responsive layout, dark/light theme, project filtering, small interactive easter egg.
+
+**Before sharing publicly**, edit `src/components/Portfolio.jsx`:
+1. Set `person.name`, `person.headline`, `person.statement`, `person.about`.
+2. Replace `your-email@example.com` with **only an address you consent to publish**.
+3. Replace the DATA QUALITY LAB generic repository listing URL with a direct public project artifact/repository URL and review all project descriptions.
+4. Test mobile, verify external links, and credit external assets in README.
+
+The SWE334 Bие даалт 2 PDF requires an **independent personal portfolio site under your own name** and a public link. A `/portfolio` route inside GREENROOM is a starting point only; if your instructor expects a separate domain/product, deploy this page as an independently branded portfolio before submission. The assignment requires a 2-minute live tour + 1-minute code question; no PPT.
