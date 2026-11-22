@@ -29,7 +29,7 @@ export function PlantDetail({ plant, onClose }) {
         {plant.image_url ? <img src={plant.image_url} alt={plant.name} className="h-full w-full object-contain"/> : <PlantArt plant={plant} className="h-full w-full"/>}
       </motion.div>
       <div className="detail-pedestal"/>
-      <p className="mt-6 text-xs uppercase tracking-[.23em] text-[#8b8e7a]">Grown for good spaces</p>
+      <p className="mt-6 text-xs uppercase tracking-[.23em] text-[#8b8e7a]">Ажлын орчинд зориулсан ургамал</p>
     </div>
     <div className="detail-copy">
       {onClose && <button onClick={onClose} className="back-link"><ChevronLeft size={18}/> Тавиур руу буцах</button>}
