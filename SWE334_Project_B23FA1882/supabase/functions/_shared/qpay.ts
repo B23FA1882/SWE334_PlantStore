@@ -77,15 +77,18 @@ export async function verifyQPayPayment(invoiceId: string, amount: number) {
 
 export async function recordQPayPayment(admin: any, order: any, paymentId: string) {
   if (order.status === 'cancelled') throw new QPayError(409, 'Цуцлагдсан захиалгад төлбөр бүртгэхгүй.')
-  if (order.status === 'pending') {
-    const { data, error } = await admin.from('orders')
-      .update({ status: 'paid' }).eq('id', order.id).eq('status', 'pending').select('id')
-    if (error || !data?.length) throw new QPayError(409, 'Захиалгын төлөв өөрчлөгдсөн байна.')
+  const invoiceId = typeof order.payment_ref === 'string' && order.payment_ref.startsWith('qpay:')
+    ? order.payment_ref.slice(5) : null
+  if (!invoiceId) throw new QPayError(409, 'QPay нэхэмжлэх захиалгатай холбогдоогүй.')
+
+  const { error } = await admin.rpc('confirm_qpay_payment_service', {
+    p_order_id: order.id,
+    p_invoice_id: invoiceId,
+    p_payment_id: paymentId,
+    p_amount: Number(order.total_amount),
+  })
+  if (error) {
+    console.error('QPay confirmation rejected:', error.code, error.message)
+    throw new QPayError(409, 'Төлбөр баталгаажсан боловч бүртгэл шинэчлэгдсэнгүй. Дахин шалгана уу.')
   }
-  const { error: paymentError } = await admin.from('payments').upsert({
-    order_id: order.id, provider: 'qpay', external_id: paymentId,
-    amount: Number(order.total_amount), status: 'paid',
-  }, { onConflict: 'external_id' })
-  if (paymentError) throw new QPayError(500, 'Төлбөрийн бүртгэлийг хадгалж чадсангүй.')
-  await admin.from('qpay_invoices').update({ status: 'paid' }).eq('order_id', order.id)
 }
