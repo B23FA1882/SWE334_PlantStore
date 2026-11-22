@@ -1,4 +1,4 @@
--- GREENROOM: A Stripe Checkout must be expired by the trusted Edge Function
+-- GREENROOM: A QPay invoice or legacy Stripe Checkout must be voided by the trusted Edge Function
 -- before calling this service_role-only transactional operation.
 -- Customers cannot call this function via browser / REST.
 
@@ -42,6 +42,11 @@ BEGIN
   UPDATE public.orders
   SET status = 'cancelled'
   WHERE id = p_order_id AND status = 'pending';
+
+  -- Keep the QPay invoice audit record aligned with order cancellation.
+  UPDATE public.qpay_invoices
+  SET status = 'cancelled'
+  WHERE order_id = p_order_id AND status = 'pending';
 
   FOR v_item IN
     SELECT product_id, quantity FROM public.order_items WHERE order_id = p_order_id
