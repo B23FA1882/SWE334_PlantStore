@@ -105,13 +105,15 @@ function Shop() {
   const [category,setCategory] = useState('Бүгд')
   const [sort,setSort] = useState('latest')
   const [maxPrice,setMaxPrice] = useState('')
+  const [fromDate,setFromDate] = useState('')
+  const [toDate,setToDate] = useState('')
   const [page,setPage] = useState(1)
   const categories = ['Бүгд', ...new Set(products.map(p=>p.category||'Ургамал'))]
   const filtered=useMemo(()=>{
-    const arr=products.filter(p => (p.name+' '+(p.description||'')).toLowerCase().includes(search.toLowerCase()) && (category==='Бүгд'||p.category===category) && (!maxPrice||p.price<=Number(maxPrice)))
+    const arr=products.filter(p => (p.name+' '+(p.description||'')).toLowerCase().includes(search.toLowerCase()) && (category==='Бүгд'||p.category===category) && (!maxPrice||p.price<=Number(maxPrice)) && (!fromDate||p.created_at?.slice(0,10)>=fromDate) && (!toDate||p.created_at?.slice(0,10)<=toDate))
     return arr.sort((a,b)=>sort==='priceLow'?a.price-b.price:sort==='priceHigh'?b.price-a.price:sort==='name'?a.name.localeCompare(b.name):new Date(b.created_at)-new Date(a.created_at))
-  },[products,search,category,maxPrice,sort])
-  useEffect(()=>setPage(1),[search,category,maxPrice,sort])
+  },[products,search,category,maxPrice,sort,fromDate,toDate])
+  useEffect(()=>setPage(1),[search,category,maxPrice,sort,fromDate,toDate])
   const perPage=8
   const pages=Math.max(1,Math.ceil(filtered.length/perPage))
   return <main className="page-shell">
@@ -120,10 +122,12 @@ function Shop() {
       <label className="searchbox"><Search size={19}/><input placeholder="Нэрээр хайх..." aria-label="Ургамал хайх" value={search} onChange={e=>setSearch(e.target.value)}/></label>
       <label><span className="sr-only">Ангилал</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></label>
       <label><span className="sr-only">Үнийн дээд хязгаар</span><input type="number" min="0" placeholder="Дээд үнэ (₮)" value={maxPrice} onChange={e=>setMaxPrice(e.target.value)}/></label>
+      <label><span className="sr-only">Эхлэх огноо</span><input type="date" aria-label="Эхлэх огноо" value={fromDate} onChange={e=>setFromDate(e.target.value)}/></label>
+      <label><span className="sr-only">Дуусах огноо</span><input type="date" aria-label="Дуусах огноо" min={fromDate || undefined} value={toDate} onChange={e=>setToDate(e.target.value)}/></label>
       <label><span className="sr-only">Эрэмбэлэх</span><select value={sort} onChange={e=>setSort(e.target.value)}><option value="latest">Шинэ эхэнд</option><option value="priceLow">Үнэ өсөхөөр</option><option value="priceHigh">Үнэ буурахаар</option><option value="name">Нэрээр</option></select></label>
     </div>
     <div className="flex items-center gap-2 text-xs text-[#899588] mb-6"><SlidersHorizontal size={15}/>{filtered.length} ургамал олдлоо</div>
-    {loadingProducts?<div className="empty-state">Ачаалж байна...</div>:!filtered.length?<div className="empty-state"><Search className="mx-auto mb-4" size={32}/>Таны хайлтанд тохирох ургамал олдсонгүй.<button className="block text-[#456f50] underline mx-auto mt-3" onClick={()=>{setSearch('');setCategory('Бүгд');setMaxPrice('')}}>Шүүлтүүр цэвэрлэх</button></div>:<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-7">{filtered.slice((page-1)*perPage,page*perPage).map(p=><PlantTile plant={p} key={p.id}/>)}</div>}
+    {loadingProducts?<div className="empty-state">Ачаалж байна...</div>:!filtered.length?<div className="empty-state"><Search className="mx-auto mb-4" size={32}/>Таны хайлтанд тохирох ургамал олдсонгүй.<button className="block text-[#456f50] underline mx-auto mt-3" onClick={()=>{setSearch('');setCategory('Бүгд');setMaxPrice('');setFromDate('');setToDate('')}}>Шүүлтүүр цэвэрлэх</button></div>:<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-7">{filtered.slice((page-1)*perPage,page*perPage).map(p=><PlantTile plant={p} key={p.id}/>)}</div>}
     {pages>1&&<div className="pagination">{Array.from({length:pages},(_,i)=><button key={i} className={i+1===page?'active':''} onClick={()=>{setPage(i+1);window.scrollTo({top:200,behavior:'smooth'})}}>{i+1}</button>)}</div>}
   </main>
 }
